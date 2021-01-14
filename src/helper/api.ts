@@ -16,7 +16,6 @@ export const useFetch = (url:string, headers:any ) => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-   
     const fetchData = async () => {
       try {
         const res = await fetch(url, headers)
@@ -28,7 +27,7 @@ export const useFetch = (url:string, headers:any ) => {
       }
     };
     fetchData();
-  }, []);
+  }, [url,headers]);
   return { response, error, isLoading };
 };
 
