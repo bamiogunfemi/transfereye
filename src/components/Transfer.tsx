@@ -119,20 +119,16 @@ const Transfer = () => {
                 ({ getFieldValue }) => ({
                   // validation  to check that amount entered is less than or equal to ₦10,000,000 and more than or equal to ₦100
                  validator(rule, value) {
-                    if (value <= 100 && value >= 10000000) {
-                      return Promise.resolve();
-                    }
-                     else if (value <= 100) {
+                     if (value <= 100) {
                       return Promise.reject(
                         "Oops! Please enter an Amount above ₦100"
                       );
-                    } else if (value >= 5000000) {
+                    } else if (value >= 10000000) {
                       return Promise.reject("Oops! Please enter an amount less than ₦10,000,000");
                     }
                     else{
                       return Promise.resolve();
-                    }
-                    
+                    }    
                   },
                 }),
               ]}
