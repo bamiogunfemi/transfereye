@@ -1,2 +1,3 @@
 export * from './api'
-export * from './function'
+export * from './validation'
+export * from './config'

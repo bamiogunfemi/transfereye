@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { Form, Input, Modal, Select, Button } from "antd";
-import { validateMessages, useFetch, BASE_URL, getHeaders,createTransferReciept } from "../helper";
+import { Form, Input, Modal, Select, Button, message } from "antd";
+import { validateMessages, apiPost, apiGet } from "../helper";
 
 const { Option } = Select;
 
 const Transfer = () => {
 
+  useEffect(() => {
+     // fetch all banks
+ apiGet(`bank`)
+ .then((response) => (setBanks(response.data?.data)))
+ .catch((e) => {
+    message.error(e.message)
+    })
+  }, []);
   //initialize form hook
   const [form] = Form.useForm();
 
@@ -13,11 +21,11 @@ const Transfer = () => {
   const [visible, setVisible] = useState<boolean>(false);
   const [accountHolder, setAccoutHolder] = useState<string>("");
   const [accountDetails, setAccountDetails] = useState({ accountNo: "", bankCode: "", amount :"", recipientCode:'', transferCode:'' });
-  const { accountNo, bankCode, amount } = accountDetails;
   const [modalText, setModalText] = useState<string>('')
+  const [banks, setBanks] = useState([])
 
-  // fetch all banks
-  let banks = useFetch(`${BASE_URL}/bank`,getHeaders).response;
+  const {accountNo, bankCode, amount } = accountDetails;
+ 
 
     //confirmation modal 
 
@@ -36,14 +44,17 @@ const Transfer = () => {
     form.submit()
     setModalText(`Trasfer Success!`)
     form.resetFields();
-  };
+    setTimeout(function () {
+      setVisible(false);
+      setModalText('')
 
+    }, 2000);
+  }
 
   // on successful form submittion
   
   const onTransferFinish = (values: any) => {
-    console.log('stuff')
-    console.log('Success:', values);
+    console.log(values)
     const formValues = {
       ...values,
       "type": "nuban",
@@ -53,27 +64,28 @@ const Transfer = () => {
        'amount': amount
       }
     }
-    console.log('stuff')
-    createTransferReciept(formValues)
-    // setModalText(`You just transfered ${amount} to ${accountHolder}`)
-  };
-  const onFinishFailed = (errorInfo: any) => {
-    console.log('Failed:', errorInfo);
-  };
 
+    apiPost(`transferrecipient`, formValues).then((response) => {
+      console.log(response)})
+      .catch((e) => {
+        message.error(e.message)
+      })
+  };
+ 
 	useEffect(()=>{
-
   // verify account details with account number and bank code
 		if( accountNo.length === 10 && bankCode){
-			fetch(`${BASE_URL}/bank/resolve?account_number=${accountNo}&bank_code=${bankCode}`, getHeaders)
-			.then(response => response.json())
-			.then(data=> {
+			apiGet(`bank/resolve?account_number=${accountNo}&bank_code=${bankCode}`)
+			.then(response=> {
         // set account holder name
-				setAccoutHolder(data.data?.account_name)})
-			.catch((error) => {
-					console.log(error)
+        setAccoutHolder(response.data?.data?.account_name)}
+        )
+			.catch((e) => {
+        message.error(e.message)
 				 });
-		}
+		}else{
+      setAccoutHolder('')
+    }
   }, [accountNo,bankCode])
   
   // onChange of Form Inputs
@@ -107,31 +119,26 @@ const Transfer = () => {
             layout="vertical"
             initialValues={{ remember: true }}
             onFinish={onTransferFinish}
-            onFinishFailed={onFinishFailed}
             >
             <Form.Item
               label="Amount"
               name="amount"
-              rules={[
-                {
-                  required: true,
-                },
-                ({ getFieldValue }) => ({
+              rules={[{ required: true },  
+                 {
                   // validation  to check that amount entered is less than or equal to ₦10,000,000 and more than or equal to ₦100
-                 validator(rule, value) {
-                     if (value <= 100) {
+                 validator(_, value) {
+                     if (value < 100) {
                       return Promise.reject(
                         "Oops! Please enter an Amount above ₦100"
                       );
-                    } else if (value >= 10000000) {
+                    } else if (value > 10000000) {
                       return Promise.reject("Oops! Please enter an amount less than ₦10,000,000");
                     }
                     else{
-                      return Promise.resolve();
-                    }    
+                      return Promise.resolve(); 
+                    }
                   },
-                }),
-              ]}
+                }]}
               className="form-group">
               <Input type="number" />
             </Form.Item>
@@ -152,17 +159,19 @@ const Transfer = () => {
                     .toLowerCase()
                     .localeCompare(optionB.children.toLowerCase())
                 }>
-                {banks &&
+                {
                   banks.map(({ name, code }, i) => (
                     <Option value={code} key={i}>
                       {name}
                     </Option>
-                  ))}
+                  ))
+                  ?? ''}
               </Select>
             </Form.Item>
             <Form.Item
               label="Account Number"
               name="account_number"
+              rules={[{ required: true }]}
               className="form-group">
               <Input type="number" />
             </Form.Item>
